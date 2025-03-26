@@ -59,6 +59,7 @@ export default function MainOptionsBar() {
     <View style={styles.container}>
       {isHomeScreenVisible && (
         <View style={styles.homeScreenContainer}>
+          <WorkerDetailsScreen />
           <HomeScreen />
         </View>
       )}
