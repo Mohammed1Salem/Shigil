@@ -8,7 +8,7 @@ import { RootStackParamList } from "./types";
 import { Talabaty } from "./Talabaty";
 import ButtonBehavior from "./ButtonBehavior";
 import HomeScreen from "./HomeScreen";
-import WorkerDetailsScreen from "./WorkerDetailsScreen";
+
 export default function MainOptionsBar() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [isMenuVisible, setIsMenuVisible] = useState(false);
