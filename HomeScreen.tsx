@@ -1,16 +1,27 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../TFOS/types';
+
+type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 const HomeScreen = () => {
+  const navigation = useNavigation<HomeScreenNavigationProp>();
+
+  const handleNavigate = (profession: string) => {
+    navigation.navigate('WorkerDetails', { profession });
+  };
+
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.welcome}>أهلًا [اسم المستخدم]</Text>
-        <Text style={styles.location}>المدينة - الرمز <Ionicons name="location-outline" size={16} color="gray" /></Text>
+        <Text style={styles.location}>
+          المدينة - الرمز <Ionicons name="location-outline" size={16} color="gray" />
+        </Text>
 
-        {/* Search Bar */}
         <View style={styles.searchContainer}>
           <TextInput
             placeholder="ابحث عن شغيل"
@@ -23,35 +34,31 @@ const HomeScreen = () => {
         </View>
       </View>
 
-      {/* Offers Section */}
       <View style={styles.offersSection}>
         <Text style={styles.offersText}>عروض خاصة</Text>
       </View>
 
-      {/* Categories */}
       <ScrollView contentContainerStyle={styles.cardsContainer}>
-        <TouchableOpacity style={styles.card}>
+        <TouchableOpacity style={styles.card} onPress={() => handleNavigate('Electrician')}>
           <Ionicons name="flash" size={28} color="#fff" />
           <Text style={styles.cardText}>كهربائي</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.card}>
+        <TouchableOpacity style={styles.card} onPress={() => handleNavigate('Plumber')}>
           <FontAwesome5 name="tools" size={28} color="#fff" />
           <Text style={styles.cardText}>سباك</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.card}>
+        <TouchableOpacity style={styles.card} onPress={() => handleNavigate('Mechanical')}>
           <MaterialCommunityIcons name="robot-industrial" size={28} color="#fff" />
           <Text style={styles.cardText}>ميكانيكي</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.card}>
+        <TouchableOpacity style={styles.card} onPress={() => handleNavigate('Other')}>
           <MaterialCommunityIcons name="account-cog" size={28} color="#fff" />
           <Text style={styles.cardText}>شغيل آخر</Text>
         </TouchableOpacity>
       </ScrollView>
-     
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

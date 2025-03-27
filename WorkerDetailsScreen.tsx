@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,88 +6,96 @@ import {
   TouchableOpacity,
   ScrollView,
   Linking,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
+import { RouteProp, useRoute } from '@react-navigation/native';
+import { RootStackParamList } from '../TFOS/types';
+import { supabase } from '../TFOS/lib/supabase';
 
-const workers = [
-  {
-    name: 'أحمد الخالدي',
-    specialty: 'كهربائي',
-    rating: 4.5,
-    phone: '966500000001',
-    description: 'خبير في التركيبات الكهربائية بأعلى جودة وسرعة.',
-  },
-  {
-    name: 'سلمان العتيبي',
-    specialty: 'سباك',
-    rating: 4.2,
-    phone: '966500000002',
-    description: 'سباك محترف في صيانة شبكات المياه.',
-  },
-  {
-    name: 'محمد السبيعي',
-    specialty: 'ميكانيكي',
-    rating: 4.8,
-    phone: '966500000003',
-    description: 'متخصص في إصلاح السيارات والميكانيكا العامة.',
-  },
-];
+type WorkerDetailsRouteProp = RouteProp<RootStackParamList, 'WorkerDetails'>;
+
+interface Worker {
+  id: string;
+  username: string;
+  profession: string;
+  is_verified: boolean;
+  location: string;
+  number: string;
+}
 
 const WorkerDetailsScreen = () => {
+  const route = useRoute<WorkerDetailsRouteProp>();
+  const { profession } = route.params;
+
+  const [workers, setWorkers] = useState<Worker[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchWorkers = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('profession', profession)
+      .eq('is_verified', true);
+
+    if (error) {
+      console.error('حدث خطأ:', error.message);
+    } else {
+      setWorkers(data || []);
+    }
+
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchWorkers();
+  }, [profession]);
+
   const openWhatsApp = (phone: string) => {
     const url = `https://wa.me/${phone}`;
     Linking.openURL(url);
   };
 
+  if (loading) {
+    return <ActivityIndicator style={{ marginTop: 40 }} size="large" color="#1abc9c" />;
+  }
+
   return (
     <ScrollView style={styles.container}>
-      {workers.map((worker, index) => (
-        <View key={index} style={styles.workerCard}>
-          <View style={styles.imageContainer}>
-            <Ionicons name="person-circle-outline" size={90} color="#1abc9c" />
-          </View>
-
-          <View style={styles.infoContainer}>
-            <Text style={styles.name}>{worker.name}</Text>
-            <Text style={styles.specialty}>{worker.specialty}</Text>
-
-            <View style={styles.ratingContainer}>
-              {[...Array(5)].map((_, i) => (
-                <Ionicons
-                  key={i}
-                  name="star"
-                  size={20}
-                  color={i < Math.round(worker.rating) ? '#f1c40f' : '#ccc'}
-                />
-              ))}
-              <Text style={styles.ratingText}>{worker.rating}</Text>
+      {workers.length === 0 ? (
+        <Text style={{ textAlign: 'center', marginTop: 20 }}>لا يوجد شغيلين حالياً.</Text>
+      ) : (
+        workers.map((worker, index) => (
+          <View key={worker.id} style={styles.workerCard}>
+            <View style={styles.imageContainer}>
+              <Ionicons name="person-circle-outline" size={90} color="#1abc9c" />
             </View>
 
-            <Text style={styles.description}>{worker.description}</Text>
+            <View style={styles.infoContainer}>
+              <Text style={styles.name}>{worker.username}</Text>
+              <Text style={styles.specialty}>{worker.profession}</Text>
+              <Text style={styles.description}>الموقع: {worker.location}</Text>
 
-            {/* زر واتساب */}
-            <TouchableOpacity
-              style={styles.whatsappButton}
-              onPress={() => openWhatsApp(worker.phone)}
-            >
-              <FontAwesome name="whatsapp" size={20} color="#fff" />
-              <Text style={styles.buttonText}>تواصل عبر واتساب</Text>
-            </TouchableOpacity>
+              <TouchableOpacity style={styles.whatsappButton} onPress={() => openWhatsApp(worker.number)}>
+                <FontAwesome name="whatsapp" size={20} color="#fff" />
+                <Text style={styles.buttonText}>تواصل عبر واتساب</Text>
+              </TouchableOpacity>
 
-            {/* زر طلب الخدمة */}
-            <TouchableOpacity style={styles.orderButton}>
-              <MaterialIcons name="add-shopping-cart" size={20} color="#fff" />
-              <Text style={styles.buttonText}>طلب الخدمة</Text>
-            </TouchableOpacity>
+              <TouchableOpacity style={styles.orderButton}>
+                <MaterialIcons name="add-shopping-cart" size={20} color="#fff" />
+                <Text style={styles.buttonText}>طلب الخدمة</Text>
+              </TouchableOpacity>
+            </View>
+
+            {index !== workers.length - 1 && <View style={styles.separator} />}
           </View>
-
-          {/* خط فاصل */}
-          {index !== workers.length - 1 && <View style={styles.separator} />}
-        </View>
-      ))}
+        ))
+      )}
     </ScrollView>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {

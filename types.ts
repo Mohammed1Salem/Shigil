@@ -5,6 +5,11 @@ export type RootStackParamList = {
     Main: undefined;
     WorkersPage: undefined;
     Talabaty: undefined;
+    Home: undefined;
+
+
+    WorkerDetails: { profession: string };
+
   };
   
   declare global {
