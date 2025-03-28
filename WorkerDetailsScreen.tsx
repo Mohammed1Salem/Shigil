@@ -62,6 +62,11 @@ const WorkerDetailsScreen = () => {
     Linking.openURL(url);
   };
 
+  const openInMaps = (location: string) => {
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
+    Linking.openURL(url);
+  };
+
   if (loading) {
     return (
       <ActivityIndicator
@@ -92,7 +97,21 @@ const WorkerDetailsScreen = () => {
             <View style={styles.infoContainer}>
               <Text style={styles.name}>{worker.username}</Text>
               <Text style={styles.specialty}>{worker.profession}</Text>
+
               <Text style={styles.description}>الموقع: {worker.location}</Text>
+              <TouchableOpacity
+                onPress={() => openInMaps(worker.location)}
+                style={styles.mapLinkContainer}
+              >
+                <Ionicons
+                  name="location-outline"
+                  size={16}
+                  color="#3498db"
+                  style={{ marginLeft: 6 }}
+                />
+                <Text style={styles.mapLink}>عرض الموقع على الخريطة</Text>
+              </TouchableOpacity>
+
               <Text style={styles.description}>
                 {worker.worker_description}
               </Text>
@@ -149,22 +168,22 @@ const styles = StyleSheet.create({
     color: "#777",
     marginTop: 4,
   },
-  ratingContainer: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    marginTop: 8,
-  },
-  ratingText: {
-    fontSize: 14,
-    color: "#444",
-    marginRight: 6,
-  },
   description: {
     textAlign: "center",
     fontSize: 15,
     color: "#555",
-    marginVertical: 15,
+    marginVertical: 10,
     lineHeight: 22,
+  },
+  mapLinkContainer: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  mapLink: {
+    color: "#3498db",
+    fontSize: 14,
+    textDecorationLine: "underline",
   },
   whatsappButton: {
     flexDirection: "row-reverse",
