@@ -7,7 +7,7 @@ export type RootStackParamList = {
     Talabaty: undefined;
     Home: undefined;
 
-
+  
     WorkerDetails: { profession: string };
 
   };

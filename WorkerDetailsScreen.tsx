@@ -63,7 +63,9 @@ const WorkerDetailsScreen = () => {
   };
 
   const openInMaps = (location: string) => {
-    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+      location
+    )}`;
     Linking.openURL(url);
   };
 
@@ -76,6 +78,58 @@ const WorkerDetailsScreen = () => {
       />
     );
   }
+
+  const handleOrderService = async (workerId: string) => {
+    try {
+      // Get the current user's ID from Supabase Auth
+      const { data: userData, error: authError } =
+        await supabase.auth.getUser();
+
+      if (authError || !userData || !userData.user) {
+        console.error("Authentication Error:", authError?.message);
+        return;
+      }
+
+      const userId = userData.user.id;
+
+      console.log("Attempting to order worker:", {
+        workerId,
+        userId,
+      });
+
+      // Update the worker's temp_id with the user's ID and set is_ordered to true
+      const { data, error: updateError } = await supabase
+        .from("profiles")
+        .update({
+          temp_id: userId, // Set the worker's temp_id to the current user's ID
+          is_ordered: true, // Mark the worker as ordered
+        })
+        .eq("id", workerId)
+        .select();
+
+      if (updateError) {
+        console.error("Update Error:", updateError.message);
+        return;
+      }
+
+      console.log("Worker Updated:", data);
+
+      // Verify the update
+      const { data: verifyData, error: verifyError } = await supabase
+        .from("profiles")
+        .select("id, temp_id, is_ordered")
+        .eq("id", workerId)
+        .single();
+
+      console.log("Verification After Update:", {
+        id: verifyData?.id,
+        temp_id: verifyData?.temp_id,
+        is_ordered: verifyData?.is_ordered,
+      });
+    } catch (error) {
+      console.error("Unexpected Error in handleOrderService:", error);
+    }
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -98,7 +152,6 @@ const WorkerDetailsScreen = () => {
               <Text style={styles.name}>{worker.username}</Text>
               <Text style={styles.specialty}>{worker.profession}</Text>
 
-              <Text style={styles.description}>الموقع: {worker.location}</Text>
               <TouchableOpacity
                 onPress={() => openInMaps(worker.location)}
                 style={styles.mapLinkContainer}
@@ -124,7 +177,10 @@ const WorkerDetailsScreen = () => {
                 <Text style={styles.buttonText}>تواصل عبر واتساب</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.orderButton}>
+              <TouchableOpacity
+                style={styles.orderButton}
+                onPress={() => handleOrderService(worker.id)}
+              >
                 <MaterialIcons
                   name="add-shopping-cart"
                   size={20}

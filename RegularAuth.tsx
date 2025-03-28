@@ -9,12 +9,13 @@ import { RootStackParamList } from "./types";
 export default function RegularAuth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(true);
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  
+
   async function handleAuth() {
-    if (!email || !password) {
+    if (!email || !password || (isSignUp && !username)) {
       Alert.alert("Error", "Please fill all fields");
       return;
     }
@@ -23,10 +24,28 @@ export default function RegularAuth() {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        Alert.alert("Success", "Account created successfully!");
+        // Sign Up Flow
+        const { data: signUpData, error: signUpError } =
+          await supabase.auth.signUp({
+            email,
+            password,
+          });
+
+        if (signUpError) throw signUpError;
+
+        // If sign up is successful, add username to profiles
+        if (signUpData.user) {
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .update({ username: username })
+            .eq("id", signUpData.user.id);
+
+          if (profileError) throw profileError;
+
+          Alert.alert("Success", "Account created successfully!");
+        }
       } else {
+        // Sign In Flow
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -42,12 +61,21 @@ export default function RegularAuth() {
         Alert.alert("Error", "An unknown error occurred");
       }
     } finally {
-      setLoading(false); 
+      setLoading(false);
     }
   }
 
   return (
     <View style={styles.container}>
+      {isSignUp && (
+        <Input
+          label="Username"
+          value={username}
+          onChangeText={setUsername}
+          placeholder="Choose a username"
+          autoCapitalize="none"
+        />
+      )}
       <Input
         label="Email"
         value={email}
@@ -78,7 +106,11 @@ export default function RegularAuth() {
             : "Need an account? Sign Up"
         }
         type="clear"
-        onPress={() => setIsSignUp(!isSignUp)}
+        onPress={() => {
+          // Reset username when toggling
+          setUsername("");
+          setIsSignUp(!isSignUp);
+        }}
         titleStyle={styles.toggleButton}
       />
     </View>

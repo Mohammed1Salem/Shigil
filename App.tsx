@@ -5,8 +5,7 @@ import RoleSelectionScreen from "./RoleSelectionScreen";
 import ProfessionalAuth from "./ProfessionalAuth";
 import RegularAuth from "./RegularAuth";
 import WorkersPage from "./WorkersPage";
-import WorkerDetailsScreen from './WorkerDetailsScreen'; // أعلى الملف
-
+import WorkerDetailsScreen from "./WorkerDetailsScreen"; 
 
 const Stack = createStackNavigator();
 
@@ -19,6 +18,7 @@ export default function App() {
           component={RoleSelectionScreen}
           options={{ headerShown: false }}
         />
+       
         <Stack.Screen
           name="ProfessionalAuth"
           component={ProfessionalAuth}
@@ -40,10 +40,10 @@ export default function App() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-  name="WorkerDetails"
-  component={WorkerDetailsScreen}
-  options={{ title: 'تفاصيل الشغيل' }}
-/>
+          name="WorkerDetails"
+          component={WorkerDetailsScreen}
+          options={{ title: "تفاصيل الشغيل" }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
