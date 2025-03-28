@@ -7,6 +7,8 @@ import {
   ScrollView,
   Linking,
   ActivityIndicator,
+  Modal,
+  TextInput,
 } from "react-native";
 import { Ionicons, MaterialIcons, FontAwesome } from "@expo/vector-icons";
 import { RouteProp, useRoute } from "@react-navigation/native";
@@ -25,6 +27,8 @@ interface Worker {
   status: string;
   is_ordered: boolean;
   worker_description: string;
+  scenario?: string;
+  temp_id?: string;
 }
 
 const WorkerDetailsScreen = () => {
@@ -33,6 +37,9 @@ const WorkerDetailsScreen = () => {
 
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null);
+  const [scenarioText, setScenarioText] = useState("");
 
   const fetchWorkers = async () => {
     setLoading(true);
@@ -69,17 +76,12 @@ const WorkerDetailsScreen = () => {
     Linking.openURL(url);
   };
 
-  if (loading) {
-    return (
-      <ActivityIndicator
-        style={{ marginTop: 40 }}
-        size="large"
-        color="#1abc9c"
-      />
-    );
-  }
+  const handleOrderService = (workerId: string) => {
+    setSelectedWorkerId(workerId);
+    setModalVisible(true);
+  };
 
-  const handleOrderService = async (workerId: string) => {
+  const confirmOrderService = async () => {
     try {
       // Get the current user's ID from Supabase Auth
       const { data: userData, error: authError } =
@@ -92,19 +94,17 @@ const WorkerDetailsScreen = () => {
 
       const userId = userData.user.id;
 
-      console.log("Attempting to order worker:", {
-        workerId,
-        userId,
-      });
+      if (!selectedWorkerId) return;
 
-      // Update the worker's temp_id with the user's ID and set is_ordered to true
+      // Update the worker's temp_id with the user's ID, set is_ordered to true, and add scenario
       const { data, error: updateError } = await supabase
         .from("profiles")
         .update({
           temp_id: userId, // Set the worker's temp_id to the current user's ID
           is_ordered: true, // Mark the worker as ordered
+          scenario: scenarioText, // Add the scenario text
         })
-        .eq("id", workerId)
+        .eq("id", selectedWorkerId)
         .select();
 
       if (updateError) {
@@ -112,95 +112,195 @@ const WorkerDetailsScreen = () => {
         return;
       }
 
-      console.log("Worker Updated:", data);
+      // Reset modal and state
+      setModalVisible(false);
+      setSelectedWorkerId(null);
+      setScenarioText("");
 
-      // Verify the update
-      const { data: verifyData, error: verifyError } = await supabase
-        .from("profiles")
-        .select("id, temp_id, is_ordered")
-        .eq("id", workerId)
-        .single();
-
-      console.log("Verification After Update:", {
-        id: verifyData?.id,
-        temp_id: verifyData?.temp_id,
-        is_ordered: verifyData?.is_ordered,
-      });
+      // Refresh workers list
+      fetchWorkers();
     } catch (error) {
       console.error("Unexpected Error in handleOrderService:", error);
     }
   };
 
+  const cancelOrderService = () => {
+    setModalVisible(false);
+    setSelectedWorkerId(null);
+    setScenarioText("");
+  };
+
+  if (loading) {
+    return (
+      <ActivityIndicator
+        style={{ marginTop: 40 }}
+        size="large"
+        color="#1abc9c"
+      />
+    );
+  }
+
   return (
-    <ScrollView style={styles.container}>
-      {workers.length === 0 ? (
-        <Text style={{ textAlign: "center", marginTop: 20 }}>
-          لا يوجد شغيلين حالياً.
-        </Text>
-      ) : (
-        workers.map((worker, index) => (
-          <View key={worker.id} style={styles.workerCard}>
-            <View style={styles.imageContainer}>
-              <Ionicons
-                name="person-circle-outline"
-                size={90}
-                color="#1abc9c"
-              />
-            </View>
-
-            <View style={styles.infoContainer}>
-              <Text style={styles.name}>{worker.username}</Text>
-              <Text style={styles.specialty}>{worker.profession}</Text>
-
-              <TouchableOpacity
-                onPress={() => openInMaps(worker.location)}
-                style={styles.mapLinkContainer}
-              >
+    <View style={styles.container}>
+      <ScrollView>
+        {workers.length === 0 ? (
+          <Text style={{ textAlign: "center", marginTop: 20 }}>
+            لا يوجد شغيلين حالياً.
+          </Text>
+        ) : (
+          workers.map((worker, index) => (
+            <View key={worker.id} style={styles.workerCard}>
+              <View style={styles.imageContainer}>
                 <Ionicons
-                  name="location-outline"
-                  size={16}
-                  color="#3498db"
-                  style={{ marginLeft: 6 }}
+                  name="person-circle-outline"
+                  size={90}
+                  color="#1abc9c"
                 />
-                <Text style={styles.mapLink}>عرض الموقع على الخريطة</Text>
-              </TouchableOpacity>
+              </View>
 
-              <Text style={styles.description}>
-                {worker.worker_description}
-              </Text>
+              <View style={styles.infoContainer}>
+                <Text style={styles.name}>{worker.username}</Text>
+                <Text style={styles.specialty}>{worker.profession}</Text>
 
+                <TouchableOpacity
+                  onPress={() => openInMaps(worker.location)}
+                  style={styles.mapLinkContainer}
+                >
+                  <Ionicons
+                    name="location-outline"
+                    size={16}
+                    color="#3498db"
+                    style={{ marginLeft: 6 }}
+                  />
+                  <Text style={styles.mapLink}>عرض الموقع على الخريطة</Text>
+                </TouchableOpacity>
+
+                <Text style={styles.description}>
+                  {worker.worker_description}
+                </Text>
+
+                <TouchableOpacity
+                  style={styles.whatsappButton}
+                  onPress={() => openWhatsApp(worker.number)}
+                >
+                  <FontAwesome name="whatsapp" size={20} color="#fff" />
+                  <Text style={styles.buttonText}>تواصل عبر واتساب</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.orderButton}
+                  onPress={() => handleOrderService(worker.id)}
+                >
+                  <MaterialIcons
+                    name="add-shopping-cart"
+                    size={20}
+                    color="#fff"
+                  />
+                  <Text style={styles.buttonText}>طلب الخدمة</Text>
+                </TouchableOpacity>
+              </View>
+
+              {index !== workers.length - 1 && (
+                <View style={styles.separator} />
+              )}
+            </View>
+          ))
+        )}
+      </ScrollView>
+
+      {/* Scenario Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isModalVisible}
+        onRequestClose={cancelOrderService}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>وصف السيناريو</Text>
+            <TextInput
+              style={styles.scenarioInput}
+              multiline
+              numberOfLines={4}
+              placeholder="اكتب تفاصيل الخدمة المطلوبة..."
+              value={scenarioText}
+              onChangeText={setScenarioText}
+            />
+            <View style={styles.modalButtonContainer}>
               <TouchableOpacity
-                style={styles.whatsappButton}
-                onPress={() => openWhatsApp(worker.number)}
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={cancelOrderService}
               >
-                <FontAwesome name="whatsapp" size={20} color="#fff" />
-                <Text style={styles.buttonText}>تواصل عبر واتساب</Text>
+                <Text style={styles.modalButtonText}>إلغاء</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
-                style={styles.orderButton}
-                onPress={() => handleOrderService(worker.id)}
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={confirmOrderService}
+                disabled={scenarioText.trim() === ""}
               >
-                <MaterialIcons
-                  name="add-shopping-cart"
-                  size={20}
-                  color="#fff"
-                />
-                <Text style={styles.buttonText}>طلب الخدمة</Text>
+                <Text style={styles.modalButtonText}>تأكيد</Text>
               </TouchableOpacity>
             </View>
-
-            {index !== workers.length - 1 && <View style={styles.separator} />}
           </View>
-        ))
-      )}
-    </ScrollView>
+        </View>
+      </Modal>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "#f8f9fa",
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalContent: {
+    width: "85%",
+    backgroundColor: "white",
+    borderRadius: 10,
+    padding: 20,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 15,
+  },
+  scenarioInput: {
+    width: "100%",
+    height: 120,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 10,
+    textAlignVertical: "top",
+    marginBottom: 15,
+  },
+  modalButtonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  modalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 25,
+    alignItems: "center",
+    marginHorizontal: 5,
+  },
+  confirmButton: {
+    backgroundColor: "#1abc9c",
+  },
+  cancelButton: {
+    backgroundColor: "#e74c3c",
+  },
+  modalButtonText: {
+    color: "white",
+    fontWeight: "bold",
   },
   workerCard: {
     paddingVertical: 20,

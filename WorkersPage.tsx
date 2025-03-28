@@ -22,14 +22,22 @@ import { Ionicons } from "@expo/vector-icons";
 export default function WorkersPage() {
   const [status, setStatus] = useState("Taking a Break");
   const [isOrdered, setIsOrdered] = useState(false);
+  const [isWorking, setIsWorking] = useState(false);
+  const [workingDetails, setWorkingDetails] = useState<{
+    username: string;
+    location: string;
+    scenario?: string;
+    price?: number;
+  } | null>(null);
   const [orderDetails, setOrderDetails] = useState<{
     username: string;
     location: string;
+    scenario?: string;
+    temp_id: Int16Array;
   } | null>(null);
   const [price, setPrice] = useState("");
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
-  // Function to open location in maps
   const openInMaps = (locationString: string) => {
     if (!locationString) {
       Alert.alert("Error", "Location not available");
@@ -37,23 +45,18 @@ export default function WorkersPage() {
     }
 
     try {
-      // Split the location string into latitude and longitude
       const [latitude, longitude] = locationString.split(",").map(parseFloat);
-
-      // Check if coordinates are valid
       if (isNaN(latitude) || isNaN(longitude)) {
         Alert.alert("Error", "Invalid location coordinates");
         return;
       }
 
-      // Construct map URL (supporting both iOS and Android)
       const mapUrl = Platform.select({
         ios: `maps://app?daddr=${latitude},${longitude}`,
         android: `geo:${latitude},${longitude}?q=${latitude},${longitude}`,
         default: `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`,
       });
 
-      // Open the map
       Linking.openURL(mapUrl || "");
     } catch (error) {
       console.error("Error opening maps:", error);
@@ -61,11 +64,9 @@ export default function WorkersPage() {
     }
   };
 
-  // Request and store user's current location
   const requestAndStoreLocation = async () => {
     try {
       let { status } = await Location.requestForegroundPermissionsAsync();
-
       if (status !== "granted") {
         Alert.alert("Permission denied", "Location permission is required.");
         return;
@@ -98,10 +99,8 @@ export default function WorkersPage() {
     }
   };
 
-  // Update worker status
   const updateStatus = async (newStatus: string) => {
     setStatus(newStatus);
-
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -118,7 +117,6 @@ export default function WorkersPage() {
     }
   };
 
-  // Check order status periodically
   const checkOrderStatus = async () => {
     try {
       const {
@@ -128,7 +126,7 @@ export default function WorkersPage() {
 
       const { data, error } = await supabase
         .from("profiles")
-        .select("is_ordered, temp_id, price")
+        .select("is_ordered, temp_id, price, scenario, is_working, is_done")
         .eq("id", user.id)
         .single();
 
@@ -137,9 +135,32 @@ export default function WorkersPage() {
         return;
       }
 
-      // Only show modal if order is not yet processed (no price set)
-      if (data?.is_ordered && data?.temp_id && !data.price) {
-        // Fetch worker details using temp_id with more explicit selection
+      setIsWorking(data.is_working || false);
+
+      if (data.is_working) {
+        const { data: workerDetails, error: workerError } = await supabase
+          .from("profiles")
+          .select("username, location")
+          .eq("id", data.temp_id)
+          .single();
+
+        if (!workerError && workerDetails) {
+          setWorkingDetails({
+            username: workerDetails.username,
+            location: workerDetails.location || "Location not available",
+            scenario: data.scenario || "No scenario provided",
+            price: data.price,
+          });
+          setStatus(`Is working now for ${workerDetails.username || "Client"}`);
+        }
+      }
+
+      if (
+        data &&
+        data.is_ordered === true &&
+        data.is_working === false &&
+        data.temp_id
+      ) {
         const { data: workerDetails, error: workerError } = await supabase
           .from("profiles")
           .select("username, location")
@@ -151,11 +172,12 @@ export default function WorkersPage() {
           return;
         }
 
-        // Ensure username is not undefined
         if (workerDetails?.username) {
           setOrderDetails({
             username: workerDetails.username,
             location: workerDetails.location || "Location not available",
+            scenario: data.scenario || "No scenario provided",
+            temp_id: data.temp_id,
           });
           setIsOrdered(true);
         }
@@ -169,7 +191,6 @@ export default function WorkersPage() {
     }
   };
 
-  // Handle order response (accept/reject)
   const handleOrderResponse = async (accepted: boolean) => {
     const {
       data: { user },
@@ -177,20 +198,19 @@ export default function WorkersPage() {
 
     if (!user) return;
 
-    // If accepted, validate price
     if (accepted) {
-      // Check if price is a valid number
       const priceValue = parseFloat(price);
       if (isNaN(priceValue) || priceValue <= 0) {
         Alert.alert("Error", "Please enter a valid price");
         return;
       }
 
-      // Update the order status in the database with price
       const { error } = await supabase
         .from("profiles")
         .update({
           price: priceValue,
+          is_working: true,
+          is_done: false,
         })
         .eq("id", user.id);
 
@@ -200,13 +220,15 @@ export default function WorkersPage() {
         return;
       }
     } else {
-      // If rejected, reset order details
       const { error } = await supabase
         .from("profiles")
         .update({
           is_ordered: false,
           temp_id: null,
           price: null,
+          scenario: null,
+          is_working: false,
+          is_done: false,
         })
         .eq("id", user.id);
 
@@ -215,18 +237,76 @@ export default function WorkersPage() {
         Alert.alert("Error", "Failed to update order status.");
         return;
       }
+
+      setIsWorking(false);
+      setWorkingDetails(null);
+      setStatus("Taking a Break");
     }
 
-    // Close the modal and reset state
     setIsOrdered(false);
     setOrderDetails(null);
     setPrice("");
   };
 
-  // Set up interval for checking order status
+  const handleCancelOrder = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        is_working: false,
+        is_ordered: false,
+        temp_id: null,
+        price: null,
+        scenario: null,
+        is_done: false,
+      })
+      .eq("id", user.id);
+
+    if (error) {
+      console.error("Error cancelling order:", error);
+      Alert.alert("Error", "Failed to cancel order");
+      return;
+    }
+
+    setIsWorking(false);
+    setWorkingDetails(null);
+    await updateStatus("Ready to Take Orders"); // Update status here
+  };
+
+  const handleCompleteOrder = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        is_done: true,
+        is_working: false,
+        is_ordered: false,
+      })
+      .eq("id", user.id);
+
+    if (error) {
+      console.error("Error completing order:", error);
+      Alert.alert("Error", "Failed to complete order");
+      return;
+    }
+
+    setIsWorking(false);
+    setWorkingDetails(null);
+    await updateStatus("Ready to Take Orders"); // Update status here
+    Alert.alert("Success", "Order marked as completed!");
+  };
+
   useEffect(() => {
     requestAndStoreLocation();
-    const interval = setInterval(checkOrderStatus, 5000); // Check every 5 seconds
+    const interval = setInterval(checkOrderStatus, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -241,20 +321,78 @@ export default function WorkersPage() {
       >
         <View style={styles.contentContainer}>
           <TouchableOpacity
-            style={styles.button}
+            style={[styles.button, isWorking && styles.disabledButton]}
             onPress={() => updateStatus("Ready to Take Orders")}
+            disabled={isWorking}
           >
-            <Text style={styles.buttonText}>Ready to Take Orders</Text>
+            <Text
+              style={[
+                styles.buttonText,
+                isWorking && styles.disabledButtonText,
+              ]}
+            >
+              Ready to Take Orders
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.button}
+            style={[styles.button, isWorking && styles.disabledButton]}
             onPress={() => updateStatus("Taking a Break")}
+            disabled={isWorking}
           >
-            <Text style={styles.buttonText}>Taking a Break</Text>
+            <Text
+              style={[
+                styles.buttonText,
+                isWorking && styles.disabledButtonText,
+              ]}
+            >
+              Taking a Break
+            </Text>
           </TouchableOpacity>
 
-          <Text style={styles.statusText}>Current Status: {status}</Text>
+          {isWorking && workingDetails ? (
+            <View style={styles.workingDetailsContainer}>
+              <Text style={styles.scenarioTitle}>Scenario:</Text>
+              <Text style={styles.scenarioText}>{workingDetails.scenario}</Text>
+              <Text style={styles.statusText}>{status}</Text>
+
+              {workingDetails.location && (
+                <TouchableOpacity
+                  onPress={() => openInMaps(workingDetails.location)}
+                  style={styles.mapLinkContainer}
+                >
+                  <Ionicons
+                    name="location-outline"
+                    size={16}
+                    color="#3498db"
+                    style={{ marginRight: 5 }}
+                  />
+                  <Text style={styles.mapLink}>Open Location in Maps</Text>
+                </TouchableOpacity>
+              )}
+
+              <Text style={styles.workingDetailsText}>
+                Price: {workingDetails.price?.toFixed(2)} SAR
+              </Text>
+
+              <View style={styles.actionButtonsContainer}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={handleCancelOrder}
+                >
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.doneButton}
+                  onPress={handleCompleteOrder}
+                >
+                  <Text style={styles.buttonText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <Text style={styles.statusText}>Current Status: {status}</Text>
+          )}
 
           <Modal visible={isOrdered} transparent animationType="slide">
             <View style={styles.modalContainer}>
@@ -265,26 +403,32 @@ export default function WorkersPage() {
                     <Text style={styles.orderDetailsText}>
                       Username: {orderDetails.username || "Unknown User"}
                     </Text>
-                    <View style={styles.locationContainer}>
-                      {orderDetails.location && (
-                        <TouchableOpacity
-                          onPress={() => openInMaps(orderDetails.location)}
-                          style={styles.mapLinkContainer}
-                        >
-                          <Ionicons
-                            name="location-outline"
-                            size={16}
-                            color="#3498db"
-                            style={{ marginRight: 5 }}
-                          />
-                          <Text style={styles.mapLink}>Open in Maps</Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
+                    {orderDetails.location && (
+                      <TouchableOpacity
+                        onPress={() => openInMaps(orderDetails.location)}
+                        style={styles.mapLinkContainer}
+                      >
+                        <Ionicons
+                          name="location-outline"
+                          size={16}
+                          color="#3498db"
+                          style={{ marginRight: 5 }}
+                        />
+                        <Text style={styles.mapLink}>Open in Maps</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )}
 
-                {/* New Price Input Field */}
+                {orderDetails?.scenario && (
+                  <View style={styles.scenarioContainer}>
+                    <Text style={styles.scenarioTitle}>Scenario:</Text>
+                    <Text style={styles.scenarioText}>
+                      {orderDetails.scenario}
+                    </Text>
+                  </View>
+                )}
+
                 <TextInput
                   style={styles.priceInput}
                   placeholder="Enter your price"
@@ -328,20 +472,6 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
   },
-  locationContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: "100%",
-  },
-  mapLinkContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  mapLink: {
-    color: "#3498db",
-    marginLeft: 5,
-  },
   button: {
     backgroundColor: "#3498db",
     padding: 15,
@@ -350,10 +480,16 @@ const styles = StyleSheet.create({
     width: "80%",
     alignItems: "center",
   },
+  disabledButton: {
+    backgroundColor: "#a9a9a9",
+  },
   buttonText: {
     color: "white",
     fontSize: 18,
     fontWeight: "bold",
+  },
+  disabledButtonText: {
+    color: "#666666",
   },
   statusText: {
     marginTop: 20,
@@ -390,6 +526,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 5,
   },
+  scenarioContainer: {
+    width: "100%",
+    backgroundColor: "#f0f0f0",
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 15,
+    alignItems: "flex-start",
+  },
+  scenarioTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
+  scenarioText: {
+    fontSize: 14,
+    color: "#333",
+  },
   priceInput: {
     width: "80%",
     borderWidth: 1,
@@ -413,6 +566,48 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginVertical: 5,
     width: "80%",
+    alignItems: "center",
+  },
+  workingDetailsContainer: {
+    width: "80%",
+    backgroundColor: "#f0f0f0",
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 20,
+    alignItems: "flex-start",
+  },
+  workingDetailsText: {
+    fontSize: 16,
+    marginTop: 5,
+    color: "#333",
+  },
+  mapLinkContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 5,
+  },
+  mapLink: {
+    color: "#3498db",
+    fontSize: 16,
+  },
+  actionButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    marginTop: 15,
+  },
+  cancelButton: {
+    backgroundColor: "#e74c3c",
+    padding: 10,
+    borderRadius: 5,
+    width: "48%",
+    alignItems: "center",
+  },
+  doneButton: {
+    backgroundColor: "#2ecc71",
+    padding: 10,
+    borderRadius: 5,
+    width: "48%",
     alignItems: "center",
   },
 });
