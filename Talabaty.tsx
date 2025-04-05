@@ -62,9 +62,7 @@ export const Talabaty = () => {
         keyExtractor={(item) => item.id}
         renderItem={renderOrder}
       />
-      <TouchableOpacity style={styles.fab}>
-        <Ionicons name="add" size={30} color="white" />
-      </TouchableOpacity>
+      
     </View>
   );
 };
