@@ -22,12 +22,12 @@ export default function App() {
         <Stack.Screen
           name="ProfessionalAuth"
           component={ProfessionalAuth}
-          options={{ title: "Professional Auth" }}
+          options={{ title: "تسجيل شغيل" }}
         />
         <Stack.Screen
           name="RegularAuth"
           component={RegularAuth}
-          options={{ title: "Regular Auth" }}
+          options={{ title: "تسجيل عميل" }}
         />
         <Stack.Screen
           name="Main"

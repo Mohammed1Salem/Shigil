@@ -9,20 +9,20 @@ export default function RoleSelectionScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Are you a professional?</Text>
+      <Text style={styles.title}>هل أنت شغيل ؟</Text>
 
       <TouchableOpacity
         style={styles.button}
         onPress={() => navigation.navigate('ProfessionalAuth')}
         >
-        <Text style={styles.buttonText}>Yes, I have a profession</Text>
+        <Text style={styles.buttonText}>نعم ، أنا شغيل </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.button}
         onPress={() => navigation.navigate("RegularAuth")}
       >
-        <Text style={styles.buttonText}>No, I'm a regular user</Text>
+        <Text style={styles.buttonText}>لا ، أنا عميل </Text>
       </TouchableOpacity>
     </View>
   );

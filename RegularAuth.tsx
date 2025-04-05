@@ -16,7 +16,8 @@ export default function RegularAuth() {
 
   async function handleAuth() {
     if (!email || !password || (isSignUp && !username)) {
-      Alert.alert("Error", "Please fill all fields");
+      Alert.alert("خطأ", "لطفا أكمل جميع الخانات");
+      
       return;
     }
 
@@ -42,7 +43,7 @@ export default function RegularAuth() {
 
           if (profileError) throw profileError;
 
-          Alert.alert("Success", "Account created successfully!");
+          Alert.alert("تم", "تم إنشاء الحساب بنجاح");
         }
       } else {
         // Sign In Flow
@@ -58,7 +59,7 @@ export default function RegularAuth() {
       if (error instanceof Error) {
         Alert.alert("Error", error.message);
       } else {
-        Alert.alert("Error", "An unknown error occurred");
+        Alert.alert("خطأ", "حدث خطأ غير معروف");
       }
     } finally {
       setLoading(false);
@@ -69,31 +70,31 @@ export default function RegularAuth() {
     <View style={styles.container}>
       {isSignUp && (
         <Input
-          label="Username"
+          label="Username/اسم المستخدم"
           value={username}
           onChangeText={setUsername}
-          placeholder="Choose a username"
+          placeholder="ادخل اسم المستخدم"
           autoCapitalize="none"
         />
       )}
       <Input
-        label="Email"
+        label="Email/الإيميل"
         value={email}
         onChangeText={setEmail}
         placeholder="email@address.com"
         autoCapitalize="none"
       />
       <Input
-        label="Password"
+        label="Password/كلمة المرور"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
-        placeholder="Password"
+        placeholder="ادخل كلمة المرور"
         autoCapitalize="none"
       />
 
       <Button
-        title={isSignUp ? "Sign Up" : "Sign In"}
+        title={isSignUp ? "سجل حسابك" : "Sign In"}
         disabled={loading}
         onPress={handleAuth}
         buttonStyle={styles.mainButton}
@@ -102,8 +103,8 @@ export default function RegularAuth() {
       <Button
         title={
           isSignUp
-            ? "Already have an account? Sign In"
-            : "Need an account? Sign Up"
+            ? "هل لديك حساب بالفعل؟ سجل دخولك"
+            :  "هل تحتاج إلى حساب؟ سجل الآن"
         }
         type="clear"
         onPress={() => {

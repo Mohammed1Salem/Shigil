@@ -36,7 +36,7 @@ export default function ProfessionalAuth() {
       !phoneNumber || 
       !workerDescription
     ))) {
-      Alert.alert("Error", "Please fill all fields");
+      Alert.alert("خطأ", "لطفا أكمل جميع الخانات");
       return;
     }
 
@@ -74,7 +74,7 @@ export default function ProfessionalAuth() {
             status: "Ready to Take Orders",
             updated_at: new Date(),
           });
-          Alert.alert("Success", "Account created successfully!");
+          Alert.alert("تم", "تم إنشاء الحساب بنجاح");
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -107,59 +107,59 @@ export default function ProfessionalAuth() {
       >
         <View style={styles.innerContainer}>
           <Input
-            label="Email"
+            label="Email/إيميل"
             value={email}
             onChangeText={setEmail}
             placeholder="email@address.com"
             autoCapitalize="none"
           />
           <Input
-            label="Password"
+            label="Password/كلمة المرور"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            placeholder="Password"
+            placeholder="كلمة المرور"
             autoCapitalize="none"
           />
           {isSignUp && (
             <>
               <Input
-                label="Username"
+                label="Username/اسم المستخدم"
                 value={username}
                 onChangeText={setUsername}
-                placeholder="Enter your username"
+                placeholder="أدخل اسم المستخدم"
               />
               <Input
-                label="Phone Number"
+                label="Phone Number/رقم الجوال"
                 value={phoneNumber}
                 onChangeText={setPhoneNumber}
-                placeholder="Enter your phone number"
+                placeholder="أدخل رقم جوالك"
                 keyboardType="phone-pad"
               />
               <Input
-                label="Worker Description"
+                label="Worker Description/وصف عملك"
                 value={workerDescription}
                 onChangeText={setWorkerDescription}
-                placeholder="Describe your work experience and skills"
+                placeholder="صف خبرتك العملية ومهاراتك"
                 multiline
                 numberOfLines={4}
                 inputStyle={styles.descriptionInput}
               />
-              <Text style={styles.pickerLabel}>Profession</Text>
+              <Text style={styles.pickerLabel}>المهنة</Text>
               <View style={styles.pickerContainer}>
                 <Picker
                   selectedValue={profession}
                   onValueChange={(itemValue) => setProfession(itemValue)}
                   style={styles.picker}
                 >
-                  <Picker.Item label="Select your profession" value="" />
-                  <Picker.Item label="Electrician" value="Electrician" />
-                  <Picker.Item label="Mechanical" value="Mechanical" />
-                  <Picker.Item label="Plumber" value="Plumber" />
-                  <Picker.Item label="Carpenter" value="Carpenter" />
-                  <Picker.Item label="Developer" value="Developer" />
-                  <Picker.Item label="Designer" value="Designer" />
-                  <Picker.Item label="Other" value="Other" />
+                  <Picker.Item label="اختر مهنتك" value="" />
+                  <Picker.Item label="كهربائي" value="Electrician" />
+                  <Picker.Item label="ميكانيكي" value="Mechanical" />
+                  <Picker.Item label="سباك" value="Plumber" />
+                  <Picker.Item label="نجار" value="Carpenter" />
+                  <Picker.Item label="مطور" value="Developer" />
+                  <Picker.Item label="مصمم" value="Designer" />
+                  <Picker.Item label="أخرى" value="Other" />
                 </Picker>
               </View>
               <View style={styles.checkboxContainer}>
@@ -169,13 +169,13 @@ export default function ProfessionalAuth() {
                   style={styles.checkbox}
                   color={isVerified ? "#4630EB" : undefined}
                 />
-                <Text style={styles.label}>Verify profession</Text>
+                <Text style={styles.label}>Verify /التحقق من المهنة</Text>
               </View>
             </>
           )}
 
           <Button
-            title={isSignUp ? "Sign Up" : "Sign In"}
+            title={isSignUp ? "سجل حسابك" : "Sign In"}
             disabled={loading}
             onPress={handleAuth}
             buttonStyle={styles.mainButton}
@@ -184,8 +184,8 @@ export default function ProfessionalAuth() {
           <Button
             title={
               isSignUp
-                ? "Already have an account? Sign In"
-                : "Need an account? Sign Up"
+                ? "هل لديك حساب بالفعل؟ سجل دخولك"
+                : "هل تحتاج إلى حساب؟ سجل الآن"
             }
             type="clear"
             onPress={() => setIsSignUp(!isSignUp)}
