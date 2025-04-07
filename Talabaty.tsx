@@ -1,79 +1,107 @@
-import React from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import React, { useEffect, useState } from "react";
+import { View, Text, FlatList, StyleSheet, Alert } from "react-native";
+import { supabase } from "./lib/supabase";
 
 type OrderType = {
   id: string;
-  work: string;
-  name: string;
-  date: string;
-  status: string;
-  price: string;
+  username: string;
+  profession: string;
+  price: number;
+  is_done: boolean;
+  updated_at: string;
 };
 
-const orders: OrderType[] = [
-  {
-    id: "1",
-    work: "كهربائي",
-    name: "أحمد",
-    date: "2025-03-20",
-    status: "تمت",
-    price: "100 ريال",
-  },
-  {
-    id: "2",
-    work: "سباك",
-    name: "محمد",
-    date: "2025-03-19",
-    status: "قيد التنفيذ",
-    price: "150 ريال",
-  },
-];
-
 export const Talabaty = () => {
+  const [orders, setOrders] = useState<OrderType[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    setLoading(true);
+
+    // Get the current logged-in user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      Alert.alert("خطأ", "تعذر جلب بيانات المستخدم");
+      return;
+    }
+
+    // Fetch orders based on `temp_id = user.id` (all orders for this customer)
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, username, profession, price, is_done, updated_at")
+      .eq("temp_id", user.id) // Filter orders for the current customer
+      .not("price", "is", null); // Ensure there's a valid price for each order
+
+    if (error) {
+      console.error("Error fetching orders:", error);
+      Alert.alert("خطأ", "فشل في تحميل الطلبات");
+    } else {
+      setOrders(data);
+    }
+
+    setLoading(false);
+  };
+
+  const formatDate = (iso: string) => {
+    const date = new Date(iso);
+    return date.toLocaleDateString("ar-EG", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   const renderOrder = ({ item }: { item: OrderType }) => (
     <View style={styles.orderCard}>
-      <Text style={styles.priceTag}>💵 {item.price}</Text>
-      <Text style={styles.orderText}> المهنة : {item.work}</Text>
-      <Text style={styles.orderText}>الاسم: {item.name}</Text>
-      <Text style={styles.orderText}>الوقت والتاريخ: {item.date}</Text>
+      <Text style={styles.priceTag}>💵 {item.price} ريال</Text>
+      <Text style={styles.orderText}>العامل: {item.username}</Text>
+      <Text style={styles.orderText}>المهنة: {item.profession}</Text>
+      <Text style={styles.orderText}>تاريخ الطلب: {formatDate(item.updated_at)}</Text>
       <Text
         style={[
           styles.orderText,
-          item.status === "تمت" ? styles.completed : styles.inProgress,
+          item.is_done ? styles.completed : styles.inProgress,
         ]}
       >
-        الحالة: {item.status}
+        الحالة: {item.is_done ? "تمت" : "قيد التنفيذ"}
       </Text>
     </View>
   );
 
   return (
-    <View style={[styles.container, { marginTop: "40%" }]} >
+    <View style={[styles.container, { marginTop: "40%" }]}>
       <Text style={styles.text}>طــلــباتـــي</Text>
-      <FlatList
-        data={orders}
-        keyExtractor={(item) => item.id}
-        renderItem={renderOrder}
-      />
-      
+      {loading ? (
+        <Text style={{ textAlign: "center", marginTop: 20 }}>جاري التحميل...</Text>
+      ) : orders.length === 0 ? (
+        <Text style={{ textAlign: "center", marginTop: 20 }}>لا توجد طلبات</Text>
+      ) : (
+        <FlatList
+          data={orders}
+          keyExtractor={(item) => item.id}
+          renderItem={renderOrder}
+        />
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { 
+  container: {
     flex: 1,
-     backgroundColor: "#f9f9f9",
-     bottom: 125
-    },
-
+    backgroundColor: "#f9f9f9",
+    bottom: 125,
+  },
   text: {
     textAlign: "center",
     color: "white",
@@ -83,22 +111,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     borderRadius: 10,
   },
-
-  fab: {
-    position: "absolute",
-    bottom: 20,
-    alignSelf: "center",
-    backgroundColor: "green",
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-  },
-
   orderCard: {
     backgroundColor: "#fff",
     margin: 20,
@@ -110,11 +122,8 @@ const styles = StyleSheet.create({
     width: "90%",
     alignSelf: "center",
   },
-
   orderText: { fontSize: 16, marginVertical: 5, textAlign: "right" },
-
   priceTag: { fontSize: 18, color: "green", marginBottom: 5 },
-
   completed: { color: "green" },
   inProgress: { color: "blue" },
 });
