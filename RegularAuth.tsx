@@ -94,7 +94,7 @@ export default function RegularAuth() {
       />
 
       <Button
-        title={isSignUp ? "سجل حسابك" : "Sign In"}
+        title={isSignUp ? "سجل حسابك" : "سجل دخولك "}
         disabled={loading}
         onPress={handleAuth}
         buttonStyle={styles.mainButton}
@@ -124,6 +124,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   mainButton: {
+    backgroundColor : "green",
     marginBottom: 10,
   },
   toggleButton: {

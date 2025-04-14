@@ -322,7 +322,7 @@ export default function WorkersPage() {
         <View style={styles.contentContainer}>
           <TouchableOpacity
             style={[styles.button, isWorking && styles.disabledButton]}
-            onPress={() => updateStatus("Ready to Take Orders")}
+            onPress={() => updateStatus("Ready / جاهز ")}
             disabled={isWorking}
           >
             <Text
@@ -331,13 +331,13 @@ export default function WorkersPage() {
                 isWorking && styles.disabledButtonText,
               ]}
             >
-              Ready to Take Orders
+              Ready / جاهز لاستلام الطلبات  
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.button, isWorking && styles.disabledButton]}
-            onPress={() => updateStatus("Taking a Break")}
+            onPress={() => updateStatus("Break / استراحة")}
             disabled={isWorking}
           >
             <Text
@@ -346,7 +346,7 @@ export default function WorkersPage() {
                 isWorking && styles.disabledButtonText,
               ]}
             >
-              Taking a Break
+              أخذ استراحة / Break
             </Text>
           </TouchableOpacity>
 
@@ -391,7 +391,10 @@ export default function WorkersPage() {
               </View>
             </View>
           ) : (
-            <Text style={styles.statusText}>Current Status: {status}</Text>
+            <View>
+              <Text style={styles.statusText}>state - الحالة</Text>
+             <Text style={{ color: 'blue' ,fontWeight: 'bold',fontSize: 16,}}>{status}</Text>
+            </View>
           )}
 
           <Modal visible={isOrdered} transparent animationType="slide">
@@ -473,7 +476,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   button: {
-    backgroundColor: "#3498db",
+    backgroundColor: "green",
     padding: 15,
     marginVertical: 10,
     borderRadius: 10,
@@ -492,6 +495,8 @@ const styles = StyleSheet.create({
     color: "#666666",
   },
   statusText: {
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 20,
     fontSize: 16,
     fontWeight: "bold",

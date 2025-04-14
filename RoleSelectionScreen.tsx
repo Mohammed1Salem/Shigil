@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   button: {
-    backgroundColor: "#4fcdf0",
+    backgroundColor: "green",
     padding: 15,
     borderRadius: 8,
     width: "80%",
@@ -49,6 +49,6 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "white",
-    fontSize: 16,
+    fontSize: 20,
   },
 });
